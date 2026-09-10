@@ -11,17 +11,42 @@ three editorial ones.
 
 This recipe is written against the **`1.x` branch** of `ai_content_review`.
 
-That matters, because 1.x has no structured place to store scored examples or a
-per-criterion scoring scale — the only per-criterion prompt seam is the
-**Guidelines & rules** textarea (`prompt_template` in config). So each
-criterion here carries its whole compiled prompt in that one field: the rubric,
-the aspects, the scoring scale and the calibration examples.
+1.x has no structured place to store scored examples or a per-criterion scoring
+scale — the only per-criterion prompt seam is the **Guidelines & rules**
+textarea (`prompt_template` in config). So each criterion here carries its whole
+prompt in that one field, in this block order:
 
-Issue [#3585833](https://www.drupal.org/project/ai_content_review/issues/3585833)
-adds first-class config for exactly this (`example_groups`, plus `acronym`,
-`badge_color` and `short_description`) and compiles the same prompt shape
-automatically. **Do not apply this recipe to that branch** — its
-`execution_mode` key does not exist there. See "Migrating" below.
+```
+# Criterion: <label>
+<the rubric>
+
+# Aspects to consider (weigh these, then give ONE holistic score)
+- <aspect>
+
+# Scoring scale (0–100)
+- 0–<warn-1>: Fail …
+- <warn>–<pass-1>: Warning …
+- <pass>–100: Pass …
+PASS if score >= <pass>, otherwise FAIL.
+
+# Scored examples
+
+## Example (aspect: <aspect>)
+Text:
+'''
+<the example text>
+'''
+Rationale: <why it earns that score>
+Score: <0–100>
+
+# Entity reference (metadata only — the content itself is in the system prompt)
+```
+
+Keep that shape when you add criteria. Examples are tagged with their aspect
+individually as well as listed up front, so each one stays unambiguous. Text is
+fenced with `'''` rather than backticks, because CMS content is full of
+backticks. The rationale line is omitted entirely when there is no rationale,
+and the entity metadata Drupal appends lands under the final heading.
 
 ## What you get
 
@@ -161,16 +186,3 @@ two examples, and the example scores straddle the pass and warn lines. Exits
 non-zero on failure, so it can gate CI. Run it after touching any threshold or
 example.
 
-## Migrating to the #3585833 branch
-
-When that issue lands, for each criterion:
-
-1. Keep the `# Criterion:` rubric paragraph as **Guidelines & rules**.
-2. Move each `## Example (aspect: X)` into an **evaluation group** named `X`
-   — score, text and rationale map one-to-one onto the group's fields.
-3. Delete the `# Aspects to consider`, `# Scoring scale` and
-   `# Entity reference` blocks. All three are generated from config there:
-   aspects from the group labels, the scale from the thresholds you already
-   have, and the entity context is fenced automatically.
-
-The compiled result is the same prompt shape this recipe writes by hand.
