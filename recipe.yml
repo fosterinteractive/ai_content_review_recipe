@@ -13,10 +13,17 @@ install:
   # Dev convenience: inspect the agent's turns at /admin/config/ai/agents-debug.
   # Safe to drop from this list for a production site.
   - ai_agents_debugger
-  # Supplies the [node:render:full] token the shared agent uses to see the
-  # content. Without it that token renders empty and every criterion scores
-  # a blank page.
-  - token_entity_render
+  # Field tokens for the agent's system prompt. Core resolves [node:title] and
+  # [node:body] on its own; this adds [node:field_*] so the agent can be pointed
+  # at custom fields without further code.
+  #
+  # NOT token_entity_render: its [node:render:VIEW_MODE] token needs
+  # $data['entity_type'] and $data['entity'], but ai_content_review 1.x passes
+  # token contexts as [entity_type_id => $entity] only (see
+  # InternalReviewRecordType::getTokenContexts() and
+  # AiAgentEntityWrapper::applyTokens()). The token silently never resolves and
+  # every criterion scores a blank page. Verified on 1.x @ 96680ef.
+  - token
 
 config:
   strict: false

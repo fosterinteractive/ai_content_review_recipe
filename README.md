@@ -34,7 +34,7 @@ automatically. **Do not apply this recipe to that branch** — its
 
 Plus:
 
-- Modules: `ai_content_review`, `ai_agents`, `ai_agents_debugger`, `token_entity_render`
+- Modules: `ai_content_review`, `ai_agents`, `ai_agents_debugger`, `token`
 - Content type: `page` (Basic page), via `core/recipes/page_content_type`
 - One AI agent: **Content Review** (`content_review`)
 - One rule: **Editorial review** (`fi_editorial_review`), on `node.page`
@@ -50,8 +50,8 @@ prompt_template  +  "\n\n"  +  $record->getType()->buildReviewContext($record)
 `buildReviewContext()` returns **metadata only** — entity type, bundle, label,
 and the field machine names suggestions can target. It contains no field
 values. The content itself reaches the model separately, through the
-`[node:render:full]` token in the agent's system prompt, resolved from the
-token contexts the record type supplies.
+`[node:title]` and `[node:body]` tokens in the agent's system prompt, resolved
+from the token contexts the record type supplies.
 
 That split is why the recipe is shaped the way it is:
 
@@ -76,8 +76,9 @@ drift, the model will call something a pass that Drupal grades as a warning.
 - An AI provider configured with a default model for the **`chat_with_tools`**
   operation type (OpenAI, Anthropic, amazee.io, …). The recipe asserts this and
   will fail fast if it is missing.
-- `token_entity_render` must be installed, or `[node:render:full]` renders empty
-  and every criterion scores a blank page. It is in the `install` list.
+- The reviewed bundle needs a `body` field, because the agent's system prompt
+  reads `[node:title]` and `[node:body]`. Point it at other fields by editing
+  the agent — see the warning below.
 
 ## Applying it
 
@@ -114,6 +115,35 @@ be left alone rather than updated.
   before touching the examples.
 - **Different content types.** Change `bundles` in the rule, or empty it to
   match every node bundle.
+
+## Do not use `token_entity_render` / `[node:render:VIEW_MODE]`
+
+The recipe this was forked from renders content with `[node:render:full]`.
+**That token cannot resolve here, and it fails silently.**
+
+`token_entity_render_tokens()` returns early unless `$data['entity_type']` and
+`$data['entity']` are set. On 1.x the chain that builds the token data is:
+
+```
+InternalReviewRecordType::getTokenContexts()  ->  [ 'node' => $entity ]
+AiAgentEntityWrapper::applyTokens()           ->  [ 'user', 'ai_agent' ] + the above
+Token::replacePlain($prompt, $that)
+```
+
+Neither `entity_type` nor `entity` is ever set, so the token passes through
+verbatim and the model is asked to score the literal string
+`[node:render:full]`. It dutifully does, and every criterion returns a score of
+about 5 with severity `critical` — a result that looks like a real review, not
+like a bug.
+
+Verified against 1.x @ `96680ef`. Use core/`token` field tokens instead; they
+resolve from `$data['node']`, which *is* set:
+
+| Token | Resolves |
+| --- | --- |
+| `[node:title]`, `[node:body]`, `[node:summary]`, `[node:url]` | yes |
+| `[node:field_*]` | yes, with the `token` module |
+| `[node:render:full]`, `[node:content-type]` | **no** |
 
 ## Checking your edits
 
