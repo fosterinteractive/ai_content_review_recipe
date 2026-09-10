@@ -1,0 +1,27 @@
+name: 'Foster Interactive AI Content Review'
+description: 'Installs AI Content Review with a four-criterion editorial rule (SEO, tone & voice, inclusive language, readability) driven by one shared review agent.'
+type: 'AI Initiative'
+
+recipes:
+  - core/recipes/page_content_type
+
+install:
+  # The module under review, plus its dependency chain.
+  - ai_content_review
+  # Agent-based criteria need the agent system.
+  - ai_agents
+  # Dev convenience: inspect the agent's turns at /admin/config/ai/agents-debug.
+  # Safe to drop from this list for a production site.
+  - ai_agents_debugger
+  # Supplies the [node:render:full] token the shared agent uses to see the
+  # content. Without it that token renders empty and every criterion scores
+  # a blank page.
+  - token_entity_render
+
+config:
+  strict: false
+  actions:
+    ai.settings:
+      verifySetupAi:
+        operation_type_has_default_model:
+          - chat_with_tools

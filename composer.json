@@ -1,0 +1,19 @@
+{
+    "name": "fosterinteractive/ai_content_review_recipe",
+    "description": "Installs AI Content Review with a four-criterion editorial rule (SEO, tone & voice, inclusive language, readability) driven by one shared review agent.",
+    "type": "drupal-recipe",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Foster Interactive",
+            "homepage": "https://www.fosterinteractive.com"
+        }
+    ],
+    "require": {
+        "drupal/core": "^10.5 || ^11.2",
+        "drupal/ai_content_review": "1.x-dev@dev",
+        "drupal/ai_agents": "^1.2",
+        "drupal/ai_agents_debugger": "^1.0@alpha",
+        "drupal/token_entity_render": "^2.0"
+    }
+}
