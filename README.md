@@ -38,8 +38,6 @@ Text:
 '''
 Rationale: <why it earns that score>
 Score: <0–100>
-
-# Entity reference (metadata only — the content itself is in the system prompt)
 ```
 
 Keep that shape when you add criteria. Examples are tagged with their aspect
@@ -86,13 +84,19 @@ resolved from the token contexts the record type supplies.
 That split is why the recipe is shaped the way it is:
 
 - **The agent** is a neutral scaffold. It holds the content token, the tool
-  contract, and the rule for picking a severity. It says nothing about tone,
+  contract, and the rule for picking a severity. It says nothing about tone or
   reading level, so all three criteria can share it.
 - **Each criterion's `prompt_template`** holds everything criterion-specific.
 
-Each prompt ends with a `# Entity reference` heading so the metadata Drupal
-appends lands under a sensible label instead of trailing off the end of the
-examples.
+Drupal appends `buildReviewContext()` to the end of every `prompt_template`,
+so each prompt trails off into `Entity type: … / Bundle: … / Label: …` with no
+section break. These prompts carried a `# Entity reference` heading to close the
+examples section and mark that block as metadata rather than content. It was
+removed after an A/B on the same criterion and node found no effect — three runs
+each way came out at mean 86.0 with the heading and 86.7 without, a gap smaller
+than the spread within either variant, and the metadata never surfaced in an
+explanation either way. Worth re-testing if `buildReviewContext()` ever starts
+returning content rather than metadata.
 
 ### Two sources of truth for the thresholds
 

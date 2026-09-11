@@ -101,8 +101,6 @@ criteria:
         '''
         Rationale: Abstract nouns and a threat where a plain, friendly warning would do the same job.
         Score: 12
-
-        # Entity reference (metadata only — the content itself is in the system prompt)
   -
     label: 'Inclusive language'
     plugin_id: agent_based
@@ -179,8 +177,6 @@ criteria:
         '''
         Rationale: Assumes sight, and "obviously" tells anyone who does not follow that the problem is them.
         Score: 28
-
-        # Entity reference (metadata only — the content itself is in the system prompt)
   -
     label: Readability
     plugin_id: agent_based
@@ -257,5 +253,3 @@ criteria:
         '''
         Rationale: Three long abstractions standing in for "log in first".
         Score: 20
-
-        # Entity reference (metadata only — the content itself is in the system prompt)
