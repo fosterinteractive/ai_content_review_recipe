@@ -1,11 +1,11 @@
 # Foster Interactive AI Content Review
 
 A Drupal recipe that installs [AI Content Review](https://www.drupal.org/project/ai_content_review)
-and configures a ready-to-run editorial review: **one rule, four criteria, one shared agent.**
+and configures a ready-to-run editorial review: **one rule, three criteria, one shared agent.**
 
 Forked from [artemvd/ai_content_review_test](https://github.com/artemvd/ai_content_review_test),
-which ships a single SEO criterion. This recipe keeps that criterion and adds
-three editorial ones.
+which ships a single SEO criterion. This recipe replaces it with three
+editorial ones.
 
 ## Targets the 1.x branch
 
@@ -55,7 +55,6 @@ and the entity metadata Drupal appends lands under the final heading.
 | Tone & voice | 80 | 60 | Warmth, Plain language |
 | Inclusive language | 85 | 65 | Gendered language, Assumptions about ability and access |
 | Readability | 75 | 55 | Sentence clarity, Word choice |
-| SEO effectiveness | 75 | 55 | Title and description, Heading structure, Search intent and keywords |
 
 Plus:
 
@@ -82,7 +81,7 @@ That split is why the recipe is shaped the way it is:
 
 - **The agent** is a neutral scaffold. It holds the content token, the tool
   contract, and the rule for picking a severity. It says nothing about tone,
-  reading level or SEO, so all four criteria can share it.
+  reading level, so all three criteria can share it.
 - **Each criterion's `prompt_template`** holds everything criterion-specific.
 
 Each prompt ends with a `# Entity reference` heading so the metadata Drupal
@@ -121,12 +120,15 @@ be left alone rather than updated.
 
 ## Where to look afterwards
 
-- `/admin/config/ai/content-review/rules` — the rule and its four criteria
+- `/admin/config/ai/content-review/rules` — the rule and its three criteria
 - `/admin/config/ai/agents/content_review/edit/form` — the shared agent
 - `/node/add/page` — create a page, then use the **AI review** sidebar on the
   edit form
-- `/admin/config/ai/agents-debug` — inspect the agent's actual turns when a
-  score looks wrong
+- `/admin/config/ai/agents/debug` — the AI Agents Debugger: run the
+  `content_review` agent by hand against a spoofed node token, watch its turns,
+  and edit its system prompt live. It shows the token-replaced system prompt for
+  runs *it* starts; it cannot browse a review triggered from the node form (see
+  "Capturing the full prompt")
 
 ## Tuning
 
@@ -141,34 +143,89 @@ be left alone rather than updated.
 - **Different content types.** Change `bundles` in the rule, or empty it to
   match every node bundle.
 
-## Do not use `token_entity_render` / `[node:render:VIEW_MODE]`
+## About `[node:render:full]`
 
-The recipe this was forked from renders content with `[node:render:full]`.
-**That token cannot resolve here, and it fails silently.**
+The `ai_content_review` README suggests `[node:render:full]` in agent
+instructions. It works, but **only if two modules are enabled, neither of which
+is a dependency of `ai_content_review`** (its `info.yml` requires just `ai`,
+`ai_agents`, `entity`):
 
-`token_entity_render_tokens()` returns early unless `$data['entity_type']` and
-`$data['entity']` are set. On 1.x the chain that builds the token data is:
+- **`token_entity_render`** — defines the `[node:render:VIEW_MODE]` token.
+- **`token`** — without it the token silently does not resolve.
+
+The second one is the trap. `token_entity_render_tokens()` returns early unless
+`$data['entity_type']` and `$data['entity']` are set, and the review flow passes
+only `['node' => $entity]`:
 
 ```
-InternalReviewRecordType::getTokenContexts()  ->  [ 'node' => $entity ]
-AiAgentEntityWrapper::applyTokens()           ->  [ 'user', 'ai_agent' ] + the above
-Token::replacePlain($prompt, $that)
+InternalReviewRecordType::getTokenContexts()  ->  ['node' => $entity]
+AiAgentEntityWrapper::applyTokens()           ->  ['user','ai_agent'] + the above
 ```
 
-Neither `entity_type` nor `entity` is ever set, so the token passes through
-verbatim and the model is asked to score the literal string
-`[node:render:full]`. It dutifully does, and every criterion returns a score of
-about 5 with severity `critical` — a result that looks like a real review, not
-like a bug.
+The `token` module is what bridges the gap: when it handles tokens for an entity
+token type it re-dispatches them as the generic `entity` type with
+`['entity_type' => …, 'entity' => …]` attached
+(`TokenTokensHooks`, ~line 686), which is exactly the shape
+`token_entity_render` is waiting for. With `token_entity_render` enabled but
+`token` not, the prompt keeps the literal string `[node:render:full]`, the model
+scores *that*, and every criterion returns roughly 5 with severity `critical` —
+a result that reads like a real review of terrible content, not like a bug.
 
-Verified against 1.x @ `96680ef`. Use core/`token` field tokens instead; they
-resolve from `$data['node']`, which *is* set:
+### Why this recipe still uses field tokens
 
-| Token | Resolves |
+Because resolving the token does not buy what you would expect.
+`AiAgentEntityWrapper::applyTokens()` calls `Token::replacePlain()`, which
+flattens **token replacement values** to plain text. (Static markup written
+directly into the prompt survives; only what a token returns is stripped.) So
+the rendered entity arrives with its markup gone:
+
+| | `<h2>` preserved |
 | --- | --- |
-| `[node:title]`, `[node:body]`, `[node:summary]`, `[node:url]` | yes |
-| `[node:field_*]` | yes, with the `token` module |
-| `[node:render:full]`, `[node:content-type]` | **no** |
+| `replace()` | yes |
+| `replacePlain()` — what the agent uses | **no** |
+
+Measured on the same node, both modules enabled:
+
+- `[node:render:full]` — 765 chars: the same run-together text, plus the view
+  mode's whitespace, and **no title** (the `full` view mode's `<header>` renders
+  empty here)
+- `[node:title]` + `[node:body]` — 743 chars: same text, **includes the title**,
+  no padding
+
+### The part that is a real loss
+
+Headings genuinely are destroyed — `"Before you startYou will need access…"` —
+which matters for any criterion that judges structure. Measured with an SEO
+criterion (since removed from this recipe): inlining the real HTML as static
+prompt text, which survives, moved the same node from **62 to 74**, with the
+explanation newly citing an outline it could not see before.
+
+No choice of token fixes this, because every token's value goes through
+`replacePlain()`. Content keeps its markup only when it is not a token — on 1.x
+that means the task input, which is concatenated straight into the `Task` and
+never token-replaced. `InternalReviewRecordType::buildReviewContext()` returns
+metadata only today, so nothing carries structure through.
+
+## Capturing the full prompt
+
+Nothing in the stack records the prompt actually sent:
+
+- `ai_logging` stores `ChatInput::toString()`, which iterates `$this->messages`
+  — but the system prompt travels via `ChatInput::setSystemPrompt()`, a separate
+  property, so the part you most want is absent.
+- `ai_agents_debugger` is an interactive test form, not a capture of real runs.
+
+`scripts/dump-prompt.php` attaches a listener to the `ai_agents.request` event
+at runtime, inside one PHP process, then runs a real review. No module is
+modified and nothing persists:
+
+```bash
+# node id, criterion index (0-based: 0 tone, 1 inclusive, 2 readability), output dir
+ddev drush php:script /var/www/html/recipes/ai_content_review_recipe/scripts/dump-prompt.php -- 2 0 /var/www/html/doc/prompt
+```
+
+It prints the token-replaced system prompt, every message with its role, and the
+tools offered, per turn.
 
 ## Checking your edits
 

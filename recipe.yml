@@ -1,5 +1,5 @@
 name: 'Foster Interactive AI Content Review'
-description: 'Installs AI Content Review with a four-criterion editorial rule (SEO, tone & voice, inclusive language, readability) driven by one shared review agent.'
+description: 'Installs AI Content Review with a three-criterion editorial rule (tone & voice, inclusive language, readability) driven by one shared review agent.'
 type: 'AI Initiative'
 
 recipes:
