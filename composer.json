@@ -13,7 +13,6 @@
         "drupal/core": "^10.5 || ^11.2",
         "drupal/ai_content_review": "1.x-dev@dev",
         "drupal/ai_agents": "^1.2",
-        "drupal/ai_agents_debugger": "^1.0@alpha",
         "drupal/token": "^1.15",
         "drupal/token_entity_render": "^2.0"
     }

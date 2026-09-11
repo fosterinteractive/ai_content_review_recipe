@@ -61,8 +61,7 @@ that the warn threshold depends on.
 
 Plus:
 
-- Modules: `ai_content_review`, `ai_agents`, `ai_agents_debugger`, `token`,
-  `token_entity_render`
+- Modules: `ai_content_review`, `ai_agents`, `token`, `token_entity_render`
 - Content type: `page` (Basic page), via `core/recipes/page_content_type`
 - One AI agent: **Content Review** (`content_review`)
 - One rule: **Editorial review** (`fi_editorial_review`), on `node.page`
@@ -160,11 +159,13 @@ them — nothing else references them.
 - `/admin/config/ai/agents/content_review/edit/form` — the shared agent
 - `/node/add/page` — create a page, then use the **AI review** sidebar on the
   edit form
-- `/admin/config/ai/agents/debug` — the AI Agents Debugger: run the
-  `content_review` agent by hand against a spoofed node token, watch its turns,
-  and edit its system prompt live. It shows the token-replaced system prompt for
-  runs *it* starts; it cannot browse a review triggered from the node form (see
-  "Capturing the full prompt")
+- `/admin/config/ai/agents/debug` — only if you add
+  [`ai_agents_debugger`](https://www.drupal.org/project/ai_agents_debugger)
+  yourself; this recipe does not install it. It runs an agent by hand and edits
+  its system prompt live, which is a fast loop for tuning prompt wording. It
+  cannot reproduce a content review, though: its UI offers no way to supply a
+  node token context, and it cannot browse a run triggered from the node form
+  (see "Capturing the full prompt")
 
 ## Tuning
 
@@ -257,7 +258,9 @@ Nothing in the stack records the prompt actually sent:
 - `ai_logging` stores `ChatInput::toString()`, which iterates `$this->messages`
   — but the system prompt travels via `ChatInput::setSystemPrompt()`, a separate
   property, so the part you most want is absent.
-- `ai_agents_debugger` is an interactive test form, not a capture of real runs.
+- `ai_agents_debugger`, if you add it, is an interactive test form — it shows
+  the system prompt for runs it starts itself, not for a review triggered from
+  the node form.
 
 `scripts/dump-prompt.php` attaches a listener to the `ai_agents.request` event
 at runtime, inside one PHP process, then runs a real review. No module is

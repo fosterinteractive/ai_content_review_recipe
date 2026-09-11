@@ -10,9 +10,6 @@ install:
   - ai_content_review
   # Agent-based criteria need the agent system.
   - ai_agents
-  # Dev convenience: inspect the agent's turns at /admin/config/ai/agents-debug.
-  # Safe to drop from this list for a production site.
-  - ai_agents_debugger
   # Both are required for the agent's [node:render:full] token.
   #
   # token_entity_render defines [node:render:VIEW_MODE]. On its own it is not
