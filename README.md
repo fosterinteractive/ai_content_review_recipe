@@ -58,7 +58,8 @@ and the entity metadata Drupal appends lands under the final heading.
 
 Plus:
 
-- Modules: `ai_content_review`, `ai_agents`, `ai_agents_debugger`, `token`
+- Modules: `ai_content_review`, `ai_agents`, `ai_agents_debugger`, `token`,
+  `token_entity_render`
 - Content type: `page` (Basic page), via `core/recipes/page_content_type`
 - One AI agent: **Content Review** (`content_review`)
 - One rule: **Editorial review** (`fi_editorial_review`), on `node.page`
@@ -73,9 +74,9 @@ prompt_template  +  "\n\n"  +  $record->getType()->buildReviewContext($record)
 
 `buildReviewContext()` returns **metadata only** — entity type, bundle, label,
 and the field machine names suggestions can target. It contains no field
-values. The content itself reaches the model separately, through the
-`[node:title]` and `[node:body]` tokens in the agent's system prompt, resolved
-from the token contexts the record type supplies.
+values. The content itself reaches the model separately, through
+`<h1>[node:title]</h1>` and `[node:render:full]` in the agent's system prompt,
+resolved from the token contexts the record type supplies.
 
 That split is why the recipe is shaped the way it is:
 
@@ -100,9 +101,9 @@ drift, the model will call something a pass that Drupal grades as a warning.
 - An AI provider configured with a default model for the **`chat_with_tools`**
   operation type (OpenAI, Anthropic, amazee.io, …). The recipe asserts this and
   will fail fast if it is missing.
-- The reviewed bundle needs a `body` field, because the agent's system prompt
-  reads `[node:title]` and `[node:body]`. Point it at other fields by editing
-  the agent — see the warning below.
+- **`token` and `token_entity_render` must both be enabled.** Both are in the
+  `install` list; see "About `[node:render:full]`" below for why one without
+  the other fails silently.
 
 ## Applying it
 
@@ -171,40 +172,48 @@ token type it re-dispatches them as the generic `entity` type with
 scores *that*, and every criterion returns roughly 5 with severity `critical` —
 a result that reads like a real review of terrible content, not like a bug.
 
-### Why this recipe still uses field tokens
+### Why the rendered node, and not field tokens
 
-Because resolving the token does not buy what you would expect.
+`[node:render:full]` renders whatever the bundle's `full` view mode shows, so
+the recipe is not tied to any particular field. `[node:body]` would work equally
+well on Basic page and break on the first content type that stores its prose
+somewhere else.
+
+The one thing the view mode does not give you is the title — the `full` view
+mode's `<header>` renders empty here, so the rendered output has no title at
+all. Hence the `<h1>[node:title]</h1>` line above it. That works because the
+`<h1>` tags are **static text in the prompt**, and only a *token's own value*
+gets flattened (see below); the title itself has no markup to lose.
+
+### What you do lose, and why no token fixes it
+
 `AiAgentEntityWrapper::applyTokens()` calls `Token::replacePlain()`, which
-flattens **token replacement values** to plain text. (Static markup written
-directly into the prompt survives; only what a token returns is stripped.) So
-the rendered entity arrives with its markup gone:
+flattens token replacement values to plain text:
 
 | | `<h2>` preserved |
 | --- | --- |
 | `replace()` | yes |
 | `replacePlain()` — what the agent uses | **no** |
 
-Measured on the same node, both modules enabled:
+So the body arrives as one run-together block: `"Before you startYou will need
+access…"`. Measured on the same node, both modules enabled: the rendered entity
+is 1134 bytes with 4 `<h2>` before `replacePlain()`, and 765 bytes with 0 after.
 
-- `[node:render:full]` — 765 chars: the same run-together text, plus the view
-  mode's whitespace, and **no title** (the `full` view mode's `<header>` renders
-  empty here)
-- `[node:title]` + `[node:body]` — 743 chars: same text, **includes the title**,
-  no padding
+This is not `token_entity_render`'s doing — it returns full HTML. Its
+`renderPlain()` call means *"render outside the current render context"* (since
+renamed `renderInIsolation()`), not "render as plain text". The flattening is
+`ai_agents` choosing `replacePlain()` over `replace()`, unconditionally, for
+every agent on the site.
 
-### The part that is a real loss
-
-Headings genuinely are destroyed — `"Before you startYou will need access…"` —
-which matters for any criterion that judges structure. Measured with an SEO
+It matters for any criterion that judges structure. Measured with an SEO
 criterion (since removed from this recipe): inlining the real HTML as static
 prompt text, which survives, moved the same node from **62 to 74**, with the
 explanation newly citing an outline it could not see before.
 
-No choice of token fixes this, because every token's value goes through
+No choice of token works around it, because every token's value goes through
 `replacePlain()`. Content keeps its markup only when it is not a token — on 1.x
 that means the task input, which is concatenated straight into the `Task` and
-never token-replaced. `InternalReviewRecordType::buildReviewContext()` returns
-metadata only today, so nothing carries structure through.
+never token-replaced.
 
 ## Capturing the full prompt
 

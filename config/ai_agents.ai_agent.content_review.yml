@@ -21,10 +21,8 @@ system_prompt: |-
   The content to review is:
 
   --- BEGIN CONTENT ---
-  Title: [node:title]
-
-  Body:
-  [node:body]
+  <h1>[node:title]</h1>
+  [node:render:full]
   --- END CONTENT ---
 
   Do this:

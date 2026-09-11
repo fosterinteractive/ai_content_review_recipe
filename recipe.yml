@@ -13,17 +13,23 @@ install:
   # Dev convenience: inspect the agent's turns at /admin/config/ai/agents-debug.
   # Safe to drop from this list for a production site.
   - ai_agents_debugger
-  # Field tokens for the agent's system prompt. Core resolves [node:title] and
-  # [node:body] on its own; this adds [node:field_*] so the agent can be pointed
-  # at custom fields without further code.
+  # Both are required for the agent's [node:render:full] token.
   #
-  # NOT token_entity_render: its [node:render:VIEW_MODE] token needs
-  # $data['entity_type'] and $data['entity'], but ai_content_review 1.x passes
-  # token contexts as [entity_type_id => $entity] only (see
-  # InternalReviewRecordType::getTokenContexts() and
-  # AiAgentEntityWrapper::applyTokens()). The token silently never resolves and
-  # every criterion scores a blank page. Verified on 1.x @ 96680ef.
+  # token_entity_render defines [node:render:VIEW_MODE]. On its own it is not
+  # enough: its hook returns early unless $data['entity_type'] and
+  # $data['entity'] are set, and the review flow passes only
+  # ['node' => $entity]. The token module supplies the missing shape — when it
+  # handles tokens for an entity token type it re-dispatches them as the
+  # generic 'entity' type with entity/entity_type attached
+  # (TokenTokensHooks, ~line 686).
+  #
+  # With token_entity_render but NOT token, the prompt keeps the literal string
+  # [node:render:full], the model scores that, and every criterion returns
+  # roughly 5 with severity critical — which reads like a real review of
+  # terrible content, not like a bug. Neither module is a dependency of
+  # ai_content_review, so both must be listed here.
   - token
+  - token_entity_render
 
 config:
   strict: false
