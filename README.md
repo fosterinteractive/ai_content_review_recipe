@@ -116,19 +116,48 @@ drift, the model will call something a pass that Drupal grades as a warning.
 
 ## Applying it
 
-```bash
-composer require fosterinteractive/ai_content_review_recipe:dev-main
-drush recipe recipes/ai_content_review_recipe
-drush cr
+This package is not on Packagist, so add the repository first:
+
+```json
+{
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/fosterinteractive/ai_content_review_recipe"
+        }
+    ]
+}
 ```
 
-Or clone straight into the project's `recipes/` directory and apply by path.
-Under DDEV, pass the container path — a host-relative one resolves inside the
-container and will not be found:
+Or from the command line:
+
+```bash
+ddev composer config repositories.acr_recipe vcs https://github.com/fosterinteractive/ai_content_review_recipe
+ddev composer config minimum-stability dev
+ddev composer require fosterinteractive/ai_content_review_recipe:dev-main
+```
+
+`minimum-stability` is needed because this recipe requires
+`drupal/ai_content_review:1.x-dev`, which has no stable release yet.
+
+Composer pulls `ai_content_review`, `ai_agents`, `token` and
+`token_entity_render` as dependencies of the recipe, so they need no separate
+`require`. Your `installer-paths` should already route `type:drupal-recipe` to
+`recipes/{$name}`; the standard drupal/recommended-project does.
+
+Then apply it:
 
 ```bash
 ddev drush recipe /var/www/html/recipes/ai_content_review_recipe
+ddev drush cr
 ```
+
+Under DDEV, pass the container path — a host-relative one resolves inside the
+container and will not be found.
+
+You can also clone straight into `recipes/` instead of using Composer, but then
+Composer never sees the recipe's own `composer.json` and pulls none of its
+dependencies, so you have to require `drupal/ai_content_review` yourself.
 
 That is the whole thing. Everything under "Requirements" above is the same
 prerequisite any AI recipe has — a Drupal site and a working provider — not
