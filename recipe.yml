@@ -6,6 +6,12 @@ recipes:
   - core/recipes/page_content_type
 
 install:
+  # AI core. It arrives anyway as a dependency of ai_content_review, but the
+  # config action below targets ai.settings, and recipe validation rejects a
+  # config action whose extension is not installed by this recipe or one it
+  # depends on — a transitive dependency does not count. Without this line the
+  # recipe refuses to apply on a site where ai is not already enabled.
+  - ai
   # The module under review, plus its dependency chain.
   - ai_content_review
   # Agent-based criteria need the agent system.
