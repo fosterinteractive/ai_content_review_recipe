@@ -1,14 +1,8 @@
 {
-    "name": "fosterinteractive/ai_content_review_recipe",
-    "description": "Installs AI Content Review with a three-criterion editorial rule (tone & voice, inclusive language, readability) driven by one shared review agent.",
+    "name": "drupal-infrastructure/drupal-ai-demo-content-review",
+    "description": "Demo setup for AI Content Review: a three-criterion editorial rule (tone & voice, inclusive language, readability) driven by one shared review agent, plus three sample pages.",
     "type": "drupal-recipe",
     "license": "GPL-2.0-or-later",
-    "authors": [
-        {
-            "name": "Foster Interactive",
-            "homepage": "https://www.fosterinteractive.com"
-        }
-    ],
     "require": {
         "drupal/core": "^10.5 || ^11.2",
         "drupal/ai_content_review": "1.x-dev@dev",

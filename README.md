@@ -1,57 +1,36 @@
-# Foster Interactive AI Content Review
+# AI Content Review Demo
 
-A Drupal recipe that installs [AI Content Review](https://www.drupal.org/project/ai_content_review)
-and configures a ready-to-run editorial review: **one rule, three criteria, one shared agent.**
+A Drupal recipe that installs
+[AI Content Review](https://www.drupal.org/project/ai_content_review) and
+configures a ready-to-run editorial review: one rule, three criteria, one shared
+AI agent, and three sample pages to run it against.
 
-Forked from [artemvd/ai_content_review_test](https://github.com/artemvd/ai_content_review_test),
-which ships a single SEO criterion. This recipe replaces it with three
-editorial ones.
+Written against the **`1.x`** branch of `ai_content_review`.
 
-## Targets the 1.x branch
+## What will you get when applying the recipe?
 
-This recipe is written against the **`1.x` branch** of `ai_content_review`.
+Modules that will be installed:
 
-1.x has no structured place to store scored examples or a per-criterion scoring
-scale — the only per-criterion prompt seam is the **Guidelines & rules**
-textarea (`prompt_template` in config). So each criterion here carries its whole
-prompt in that one field, in this block order:
+- `ai_content_review` and its dependencies (AI Core, AI Agents, Entity)
+- `token` and `token_entity_render` — both are needed for the agent's
+  `[node:render:full]` token. Neither is a dependency of `ai_content_review`,
+  and with `token_entity_render` alone the token silently does not resolve: the
+  model is handed the literal string and scores *that*, returning roughly 5 with
+  severity `critical` on every criterion.
 
-```
-# Criterion: <label>
-<the rubric>
+Content type that will be created:
 
-# Aspects to consider (weigh these, then give ONE holistic score)
-- <aspect>
+- `page` (Basic page), via `core/recipes/page_content_type`
 
-# Scoring scale (0–100)
-- 0–<warn-1>: Fail …
-- <warn>–<pass-1>: Warning …
-- <pass>–100: Pass …
-PASS if score >= <pass>, otherwise FAIL.
+AI agent that will be created:
 
-# Scored examples
+- **Content Review** (`content_review`) — a neutral scaffold holding the content
+  tokens, the tool contract, and the rule for choosing a severity. Everything
+  criterion-specific lives on the criteria, so all three share this one agent.
 
-## Example (aspect: <aspect>)
-Text:
-'''
-<the example text>
-'''
-Rationale: <why it earns that score>
-Score: <0–100>
-```
+Review rule that will be created:
 
-Keep that shape when you add criteria. Examples are tagged with their aspect
-individually as well as listed up front, so each one stays unambiguous. Text is
-fenced with `'''` rather than backticks, because CMS content is full of
-backticks. The rationale line is omitted entirely when there is no rationale,
-and the entity metadata Drupal appends lands under the final heading.
-
-## What you get
-
-Every aspect carries **three** calibration examples — one scoring in the pass
-band, one in the warn band, one in the fail band. A pass/fail pair alone teaches
-the model the criterion is binary, and it will avoid the middle of the range
-that the warn threshold depends on.
+- **Editorial review** (`editorial_review`) on `node.page`, with three criteria:
 
 | Criterion | Pass | Warn | Aspects |
 | --- | --- | --- | --- |
@@ -59,264 +38,106 @@ that the warn threshold depends on.
 | Inclusive language | 85 | 65 | Gendered language, Assumptions about ability and access |
 | Readability | 75 | 55 | Sentence clarity, Word choice |
 
-Plus:
+Every aspect carries three calibration examples — one in the pass band, one in
+the warn band, one in the fail band. A pass/fail pair alone teaches the model
+the criterion is binary, and it will avoid the middle of the range that the warn
+threshold depends on.
 
-- Modules: `ai_content_review`, `ai_agents`, `token`, `token_entity_render`
-- Content type: `page` (Basic page), via `core/recipes/page_content_type`
-- One AI agent: **Content Review** (`content_review`)
-- One rule: **Editorial review** (`fi_editorial_review`), on `node.page`
-- Three demo pages, one per grade band (see "Demo content" below)
+Demo content that will be created — three Basic pages, written to land in a
+different band on every criterion so all three grades are visible on a first
+run:
 
-## How the prompt is assembled
+| Node | Tone & voice | Inclusive | Readability |
+| --- | --- | --- | --- |
+| Information | 22 FAIL | 22 FAIL | 32 FAIL |
+| Account Setup Information | 65 WARN | 76 WARN | 62 WARN |
+| Reset Your Password in 3 Steps | 84 PASS | 90 PASS | 70 WARN |
 
-On 1.x the module builds the agent's task as:
-
-```
-prompt_template  +  "\n\n"  +  $record->getType()->buildReviewContext($record)
-```
-
-`buildReviewContext()` returns **metadata only** — entity type, bundle, label,
-and the field machine names suggestions can target. It contains no field
-values. The content itself reaches the model separately, through
-`<h1>[node:title]</h1>` and `[node:render:full]` in the agent's system prompt,
-resolved from the token contexts the record type supplies.
-
-That split is why the recipe is shaped the way it is:
-
-- **The agent** is a neutral scaffold. It holds the content token, the tool
-  contract, and the rule for picking a severity. It says nothing about tone or
-  reading level, so all three criteria can share it.
-- **Each criterion's `prompt_template`** holds everything criterion-specific.
-
-Drupal appends `buildReviewContext()` to the end of every `prompt_template`,
-so each prompt trails off into `Entity type: … / Bundle: … / Label: …` with no
-section break. These prompts carried a `# Entity reference` heading to close the
-examples section and mark that block as metadata rather than content. It was
-removed after an A/B on the same criterion and node found no effect — three runs
-each way came out at mean 86.0 with the heading and 86.7 without, a gap smaller
-than the spread within either variant, and the metadata never surfaced in an
-explanation either way. Worth re-testing if `buildReviewContext()` ever starts
-returning content rather than metadata.
-
-### Two sources of truth for the thresholds
-
-`pass_threshold` / `warn_threshold` in config decide the badge Drupal renders.
-The `# Scoring scale` block inside `prompt_template` decides the number the
-model aims for. They are written to agree — **edit them together.** If they
-drift, the model will call something a pass that Drupal grades as a warning.
+Scores from one run against `openai / gpt-5.2`; the model is not deterministic,
+so expect a few points either way.
 
 ## Requirements
 
-- An AI provider configured with a default model for the **`chat_with_tools`**
-  operation type (OpenAI, Anthropic, amazee.io, …). The recipe asserts this and
-  will fail fast if it is missing.
-- **`token` and `token_entity_render` must both be enabled.** Both are in the
-  `install` list; see "About `[node:render:full]`" below for why one without
-  the other fails silently.
+At least one AI provider with support for the `chat_with_tools` operation type
+(OpenAI, Anthropic, amazee.io, …), **configured with a default model before the
+recipe is applied**. The recipe asserts this and stops if it is missing:
 
-## Applying it
+```
+The operation type 'chat_with_tools' does not have a default model,
+so this recipe will not work.
+```
 
-This package is not on Packagist, so add the repository first:
+Set it at `/admin/config/ai/settings`. Note the recipe is not transactional — it
+installs its modules before that assertion runs, so a failed attempt leaves them
+enabled. Configure the provider and re-run the recipe; it completes normally.
+
+## How to apply the recipe?
+
+You can either require this package with composer or git clone it to the
+`recipes` folder in your Drupal project root.
+
+To fetch the package with composer you need to add this repository to your
+`composer.json` file:
 
 ```json
 {
     "repositories": [
         {
             "type": "vcs",
-            "url": "https://github.com/fosterinteractive/ai_content_review_recipe"
+            "url": "https://gitlab.com/drupal-infrastructure/ai/drupal-ai-demo-content-review"
         }
     ]
 }
 ```
 
-Or from the command line:
-
-```bash
-ddev composer config repositories.acr_recipe vcs https://github.com/fosterinteractive/ai_content_review_recipe
-ddev composer config minimum-stability dev
-ddev composer require fosterinteractive/ai_content_review_recipe:dev-main
-```
-
-`minimum-stability` is needed because this recipe requires
-`drupal/ai_content_review:1.x-dev`, which has no stable release yet.
+Then you can run
+`composer require drupal-infrastructure/drupal-ai-demo-content-review:dev-main`
+to fetch the package. Your project needs `"minimum-stability": "dev"`, because
+`drupal/ai_content_review` has no stable release yet — the common project
+templates ship `stable`, so this usually has to be set.
 
 Composer pulls `ai_content_review`, `ai_agents`, `token` and
 `token_entity_render` as dependencies of the recipe, so they need no separate
-`require`. Your `installer-paths` should already route `type:drupal-recipe` to
-`recipes/{$name}`; the standard drupal/recommended-project does.
+`require`. An AI provider is not pulled — the choice is site-specific.
 
-Then apply it:
+Then you can use `drush` or `drupal` to apply the recipe as usual:
 
 ```bash
-ddev drush recipe /var/www/html/recipes/ai_content_review_recipe
-ddev drush cr
+drush recipe ../recipes/drupal-ai-demo-content-review
 ```
 
-Under DDEV, pass the container path — a host-relative one resolves inside the
-container and will not be found.
+It is recommended to clear the caches after the recipe is applied:
 
-You can also clone straight into `recipes/` instead of using Composer, but then
-Composer never sees the recipe's own `composer.json` and pulls none of its
-dependencies, so you have to require `drupal/ai_content_review` yourself.
+```bash
+drush cr
+```
 
-That is the whole thing. Everything under "Requirements" above is the same
-prerequisite any AI recipe has — a Drupal site and a working provider — not
-extra steps this recipe invents.
-
-Recipes are not idempotent in the way config import is — apply to a clean
-install, or expect existing `content_review` / `fi_editorial_review` config to
-be left alone rather than updated.
-
-### Demo content
-
-Three Basic pages are created, written to land in a different band on every
-criterion so the three grades are visible immediately:
-
-| Node | Tone & voice | Inclusive | Readability |
-| --- | --- | --- | --- |
-| Information | 18 FAIL | 22 FAIL | 28 FAIL |
-| Account Setup Information | 66 WARN | 78 WARN | 58 WARN |
-| Reset Your Password in 3 Steps | 86 PASS | 90 PASS | 70 WARN |
-
-Scores from one run against `openai / gpt-5.2`; the model is not deterministic,
-so expect a few points either way. Delete the three nodes if you do not want
-them — nothing else references them.
-
-## Where to look afterwards
+## Links to visit
 
 - `/admin/config/ai/content-review/rules` — the rule and its three criteria
 - `/admin/config/ai/agents/content_review/edit/form` — the shared agent
-- `/node/add/page` — create a page, then use the **AI review** sidebar on the
-  edit form
-- `/admin/config/ai/agents/debug` — only if you add
-  [`ai_agents_debugger`](https://www.drupal.org/project/ai_agents_debugger)
-  yourself; this recipe does not install it. It runs an agent by hand and edits
-  its system prompt live, which is a fast loop for tuning prompt wording. It
-  cannot reproduce a content review, though: its UI offers no way to supply a
-  node token context, and it cannot browse a run triggered from the node form
-  (see "Capturing the full prompt")
+- `/admin/content` — the three demo pages
+- `/node/1/ai-review` — the review tab for a page, where criteria are run
+- `/node/1/edit` — the **Content Review** panel in the sidebar, which also runs
+  them (it is collapsed by default)
+- `/admin/config/ai/content-review/records` — every review record
 
-## Tuning
+## Editing the criteria
 
-- **Runs time out.** Switch a criterion's `execution_mode` from `direct` to
-  `polling` — it steps the agent one turn per request instead of blocking.
-- **Scores cluster too high or too low.** Widen the spread in that criterion's
-  examples. Contrast pairs work best: the same idea written well and badly,
-  which is what every pair here does.
-- **A criterion bleeds into another.** The agent is told to score only the named
-  criterion, but overlapping rubrics still leak. Tighten the rubric wording
-  before touching the examples.
-- **Different content types.** Change `bundles` in the rule, or empty it to
-  match every node bundle.
+Each criterion's whole prompt lives in its **Guidelines & rules** textarea
+(`prompt_template` in config): the rubric, the aspects, the scoring scale and
+the calibration examples. On 1.x that is the only per-criterion prompt seam.
 
-## About `[node:render:full]`
+This means the scoring scale is written out by hand inside the prompt while
+`pass_threshold` / `warn_threshold` live in config, and nothing keeps the two in
+sync. **If you change a threshold, update the `# Scoring scale` block in that
+criterion's prompt to match**, or the badge Drupal renders will disagree with
+the number the model is aiming for.
 
-The `ai_content_review` README suggests `[node:render:full]` in agent
-instructions. It works, but **only if two modules are enabled, neither of which
-is a dependency of `ai_content_review`** (its `info.yml` requires just `ai`,
-`ai_agents`, `entity`):
+## Known limitation
 
-- **`token_entity_render`** — defines the `[node:render:VIEW_MODE]` token.
-- **`token`** — without it the token silently does not resolve.
-
-The second one is the trap. `token_entity_render_tokens()` returns early unless
-`$data['entity_type']` and `$data['entity']` are set, and the review flow passes
-only `['node' => $entity]`:
-
-```
-InternalReviewRecordType::getTokenContexts()  ->  ['node' => $entity]
-AiAgentEntityWrapper::applyTokens()           ->  ['user','ai_agent'] + the above
-```
-
-The `token` module is what bridges the gap: when it handles tokens for an entity
-token type it re-dispatches them as the generic `entity` type with
-`['entity_type' => …, 'entity' => …]` attached
-(`TokenTokensHooks`, ~line 686), which is exactly the shape
-`token_entity_render` is waiting for. With `token_entity_render` enabled but
-`token` not, the prompt keeps the literal string `[node:render:full]`, the model
-scores *that*, and every criterion returns roughly 5 with severity `critical` —
-a result that reads like a real review of terrible content, not like a bug.
-
-### Why the rendered node, and not field tokens
-
-`[node:render:full]` renders whatever the bundle's `full` view mode shows, so
-the recipe is not tied to any particular field. `[node:body]` would work equally
-well on Basic page and break on the first content type that stores its prose
-somewhere else.
-
-The one thing the view mode does not give you is the title — the `full` view
-mode's `<header>` renders empty here, so the rendered output has no title at
-all. Hence the `<h1>[node:title]</h1>` line above it. That works because the
-`<h1>` tags are **static text in the prompt**, and only a *token's own value*
-gets flattened (see below); the title itself has no markup to lose.
-
-### What you do lose, and why no token fixes it
-
-`AiAgentEntityWrapper::applyTokens()` calls `Token::replacePlain()`, which
-flattens token replacement values to plain text:
-
-| | `<h2>` preserved |
-| --- | --- |
-| `replace()` | yes |
-| `replacePlain()` — what the agent uses | **no** |
-
-So the body arrives as one run-together block: `"Before you startYou will need
-access…"`. Measured on the same node, both modules enabled: the rendered entity
-is 1134 bytes with 4 `<h2>` before `replacePlain()`, and 765 bytes with 0 after.
-
-This is not `token_entity_render`'s doing — it returns full HTML. Its
-`renderPlain()` call means *"render outside the current render context"* (since
-renamed `renderInIsolation()`), not "render as plain text". The flattening is
-`ai_agents` choosing `replacePlain()` over `replace()`, unconditionally, for
-every agent on the site.
-
-It matters for any criterion that judges structure. Measured with an SEO
-criterion (since removed from this recipe): inlining the real HTML as static
-prompt text, which survives, moved the same node from **62 to 74**, with the
-explanation newly citing an outline it could not see before.
-
-No choice of token works around it, because every token's value goes through
-`replacePlain()`. Content keeps its markup only when it is not a token — on 1.x
-that means the task input, which is concatenated straight into the `Task` and
-never token-replaced.
-
-## Capturing the full prompt
-
-Nothing in the stack records the prompt actually sent:
-
-- `ai_logging` stores `ChatInput::toString()`, which iterates `$this->messages`
-  — but the system prompt travels via `ChatInput::setSystemPrompt()`, a separate
-  property, so the part you most want is absent.
-- `ai_agents_debugger`, if you add it, is an interactive test form — it shows
-  the system prompt for runs it starts itself, not for a review triggered from
-  the node form.
-
-`scripts/dump-prompt.php` attaches a listener to the `ai_agents.request` event
-at runtime, inside one PHP process, then runs a real review. No module is
-modified and nothing persists:
-
-```bash
-# node id, criterion index (0-based: 0 tone, 1 inclusive, 2 readability), output dir
-ddev drush php:script /var/www/html/recipes/ai_content_review_recipe/scripts/dump-prompt.php -- 2 0 /var/www/html/doc/prompt
-```
-
-It prints the token-replaced system prompt, every message with its role, and the
-tools offered, per turn.
-
-## Checking your edits
-
-The scoring scale is hand-written inside each `prompt_template` while
-`pass_threshold` / `warn_threshold` live in config, and nothing in Drupal keeps
-those in sync. This script does:
-
-```bash
-ddev php recipes/ai_content_review_recipe/scripts/check-recipe.php
-```
-
-It verifies, per criterion, that the config keys are valid for 1.x, the scale
-text matches the thresholds, every declared aspect is actually used by at least
-three examples, that each aspect has one example in each band (pass, warn and
-fail), and that the example scores straddle the pass and warn lines. Exits
-non-zero on failure, so it can gate CI. Run it after touching any threshold or
-example.
-
+`AiAgentEntityWrapper::applyTokens()` uses `Token::replacePlain()`, which
+flattens token values to plain text. The rendered node therefore arrives without
+its markup — headings included — so a criterion that judges structure cannot see
+it. This is in `ai_agents` and affects every agent, not just these; no choice of
+token works around it.

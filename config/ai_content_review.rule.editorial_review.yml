@@ -4,7 +4,7 @@ status: true
 # this to empty on the first save through the UI. Shipping it empty keeps a
 # re-export diff-free instead of showing a dependency that will not survive.
 dependencies: {  }
-id: fi_editorial_review
+id: editorial_review
 label: 'Editorial review'
 record_type: internal
 entity_type: node

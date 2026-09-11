@@ -1,5 +1,5 @@
-name: 'Foster Interactive AI Content Review'
-description: 'Installs AI Content Review with a three-criterion editorial rule (tone & voice, inclusive language, readability) driven by one shared review agent.'
+name: 'AI Content Review Demo'
+description: 'Demo setup for AI Content Review: a three-criterion editorial rule (tone & voice, inclusive language, readability) driven by one shared review agent, plus three sample pages.'
 type: 'AI Initiative'
 
 recipes:
