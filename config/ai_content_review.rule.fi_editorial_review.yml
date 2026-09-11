@@ -65,6 +65,14 @@ criteria:
         ## Example (aspect: Warmth)
         Text:
         '''
+        Thank you for your registration. We will process your request shortly.
+        '''
+        Rationale: Polite and correct, but flat — it informs without sounding like anyone wrote it.
+        Score: 68
+
+        ## Example (aspect: Warmth)
+        Text:
+        '''
         Users must comply with the aforementioned procedural requirements henceforth.
         '''
         Rationale: The same instruction, drained of warmth — third person, legalistic, faintly threatening.
@@ -77,6 +85,14 @@ criteria:
         '''
         Rationale: Everyday words and short sentences. Reads like a person talking.
         Score: 84
+
+        ## Example (aspect: Plain language)
+        Text:
+        '''
+        To get started, please complete the setup process outlined below.
+        '''
+        Rationale: Readable, but 'complete the setup process' is three words doing one word's work.
+        Score: 72
 
         ## Example (aspect: Plain language)
         Text:
@@ -127,6 +143,14 @@ criteria:
         ## Example (aspect: Gendered language)
         Text:
         '''
+        Each team member should update their profile, and he or she can change it later.
+        '''
+        Rationale: Starts neutral, then falls back on 'he or she', which still leaves people out.
+        Score: 78
+
+        ## Example (aspect: Gendered language)
+        Text:
+        '''
         Each employee should update his profile with his preferred title.
         '''
         Rationale: The same sentence with a generic "he", which quietly excludes most of the audience.
@@ -139,6 +163,14 @@ criteria:
         '''
         Rationale: Names the accommodation up front instead of leaving people to ask for it.
         Score: 88
+
+        ## Example (aspect: Assumptions about ability and access)
+        Text:
+        '''
+        The recording will be available afterwards if you missed the live session.
+        '''
+        Rationale: Offers an alternative, but assumes video works for everyone — no captions or transcript.
+        Score: 74
 
         ## Example (aspect: Assumptions about ability and access)
         Text:
@@ -189,6 +221,14 @@ criteria:
         ## Example (aspect: Sentence clarity)
         Text:
         '''
+        After you have completed the setup, which usually takes a few minutes, you can begin adding content.
+        '''
+        Rationale: One nested clause between subject and action. Followable, but it makes you wait.
+        Score: 66
+
+        ## Example (aspect: Sentence clarity)
+        Text:
+        '''
         Subsequent to finalization of the aforementioned configuration, the system shall propagate the requisite modifications.
         '''
         Rationale: One sentence carrying three ideas, with the action buried at the end.
@@ -201,6 +241,14 @@ criteria:
         '''
         Rationale: Every word is one a reader already knows.
         Score: 80
+
+        ## Example (aspect: Word choice)
+        Text:
+        '''
+        Authenticate with your credentials to access the dashboard.
+        '''
+        Rationale: Understandable, but 'authenticate' and 'credentials' stand in for 'sign in' and 'password'.
+        Score: 62
 
         ## Example (aspect: Word choice)
         Text:

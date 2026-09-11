@@ -81,8 +81,23 @@ foreach ($rule['criteria'] as $n => $c) {
   preg_match_all('/## Example \(aspect: (.+?)\)/', $p, $m2);
   $used = $m2[1];
   $say($declared === array_values(array_unique($used)), 'declared aspects match example tags (' . implode(' | ', $declared) . ')');
-  foreach (array_count_values($used) as $aspect => $count) {
-    $say($count >= 2, "aspect \"$aspect\" has >= 2 examples (has $count)");
+
+  // Pair every example with its aspect so each aspect can be checked on its own:
+  // three examples spanning pass, warn and fail. A calibration set with no
+  // warn-band example teaches the model the criterion is pass/fail.
+  preg_match_all('/## Example \(aspect: (.+?)\).*?Score: (\d+)/s', $p, $pairs, PREG_SET_ORDER);
+  $byAspect = [];
+  foreach ($pairs as $pair) {
+    $byAspect[$pair[1]][] = (int) $pair[2];
+  }
+  foreach ($byAspect as $aspect => $aScores) {
+    $say(count($aScores) >= 3, "aspect \"$aspect\" has >= 3 examples (has " . count($aScores) . ')');
+    $inPass = array_filter($aScores, fn($v) => $v >= $pass);
+    $inWarn = array_filter($aScores, fn($v) => $v >= $warn && $v < $pass);
+    $inFail = array_filter($aScores, fn($v) => $v < $warn);
+    $say((bool) $inPass, "aspect \"$aspect\" has a pass example (>= $pass): " . (implode(',', $inPass) ?: 'NONE'));
+    $say((bool) $inWarn, "aspect \"$aspect\" has a warn example ($warn-" . ($pass - 1) . '): ' . (implode(',', $inWarn) ?: 'NONE'));
+    $say((bool) $inFail, "aspect \"$aspect\" has a fail example (< $warn): " . (implode(',', $inFail) ?: 'NONE'));
   }
 
   // Every example carries a score in range, and scores span the pass line.

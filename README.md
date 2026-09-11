@@ -50,6 +50,11 @@ and the entity metadata Drupal appends lands under the final heading.
 
 ## What you get
 
+Every aspect carries **three** calibration examples — one scoring in the pass
+band, one in the warn band, one in the fail band. A pass/fail pair alone teaches
+the model the criterion is binary, and it will avoid the middle of the range
+that the warn threshold depends on.
+
 | Criterion | Pass | Warn | Aspects |
 | --- | --- | --- | --- |
 | Tone & voice | 80 | 60 | Warmth, Plain language |
@@ -248,7 +253,8 @@ ddev php recipes/ai_content_review_recipe/scripts/check-recipe.php
 
 It verifies, per criterion, that the config keys are valid for 1.x, the scale
 text matches the thresholds, every declared aspect is actually used by at least
-two examples, and the example scores straddle the pass and warn lines. Exits
+three examples, that each aspect has one example in each band (pass, warn and
+fail), and that the example scores straddle the pass and warn lines. Exits
 non-zero on failure, so it can gate CI. Run it after touching any threshold or
 example.
 
