@@ -1,0 +1,37 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 3a1d9c42-7f18-4b6e-9c05-2e8b71a4d301
+  bundle: page
+  default_langcode: en
+default:
+  revision_uid:
+    -
+      target_id: 1
+  status:
+    -
+      value: true
+  uid:
+    -
+      target_id: 1
+  title:
+    -
+      value: Information
+  promote:
+    -
+      value: false
+  sticky:
+    -
+      value: false
+  revision_translation_affected:
+    -
+      value: true
+  path:
+    -
+      langcode: en
+      alias: null
+  body:
+    -
+      value: "<p>Subsequent to the finalization of the aforementioned account registration procedure, each user shall be required to update his profile with his preferred salutation, and failure to adhere to these requirements will result in the termination of said user's access privileges henceforth.</p><p>Users are advised that utilization of the password reset functionality necessitates prior authentication, and any user who cannot see the confirmation banner displayed at the top of the screen should simply glance at the chart, which obviously speaks for itself.</p><p>Password management is an important consideration for organizations operating in the modern digital landscape. Our platform offers robust, enterprise-grade solutions.</p>"
+      format: basic_html
+      summary: ''

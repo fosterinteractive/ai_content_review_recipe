@@ -1,0 +1,37 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 5c7e2b08-91a4-4d3f-8e61-0fb95c6a7d22
+  bundle: page
+  default_langcode: en
+default:
+  revision_uid:
+    -
+      target_id: 1
+  status:
+    -
+      value: true
+  uid:
+    -
+      target_id: 1
+  title:
+    -
+      value: 'Account Setup Information'
+  promote:
+    -
+      value: false
+  sticky:
+    -
+      value: false
+  revision_translation_affected:
+    -
+      value: true
+  path:
+    -
+      langcode: en
+      alias: null
+  body:
+    -
+      value: '<h2>Getting started</h2><p>Thank you for your registration. We will process your request shortly, and you will receive a confirmation once this has been completed.</p><p>To get started, please complete the setup process outlined below. After you have completed the setup, which usually takes a few minutes, you can begin adding content.</p><h2>Signing in</h2><p>Authenticate with your credentials to access the dashboard. Each team member should update their profile, and he or she can change it later.</p><p>The recording of our onboarding session will be available afterwards if you missed the live session.</p>'
+      format: basic_html
+      summary: ''

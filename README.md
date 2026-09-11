@@ -66,6 +66,7 @@ Plus:
 - Content type: `page` (Basic page), via `core/recipes/page_content_type`
 - One AI agent: **Content Review** (`content_review`)
 - One rule: **Editorial review** (`fi_editorial_review`), on `node.page`
+- Three demo pages, one per grade band (see "Demo content" below)
 
 ## How the prompt is assembled
 
@@ -123,10 +124,35 @@ drush cr
 ```
 
 Or clone straight into the project's `recipes/` directory and apply by path.
+Under DDEV, pass the container path — a host-relative one resolves inside the
+container and will not be found:
+
+```bash
+ddev drush recipe /var/www/html/recipes/ai_content_review_recipe
+```
+
+That is the whole thing. Everything under "Requirements" above is the same
+prerequisite any AI recipe has — a Drupal site and a working provider — not
+extra steps this recipe invents.
 
 Recipes are not idempotent in the way config import is — apply to a clean
 install, or expect existing `content_review` / `fi_editorial_review` config to
 be left alone rather than updated.
+
+### Demo content
+
+Three Basic pages are created, written to land in a different band on every
+criterion so the three grades are visible immediately:
+
+| Node | Tone & voice | Inclusive | Readability |
+| --- | --- | --- | --- |
+| Information | 18 FAIL | 22 FAIL | 28 FAIL |
+| Account Setup Information | 66 WARN | 78 WARN | 58 WARN |
+| Reset Your Password in 3 Steps | 86 PASS | 90 PASS | 70 WARN |
+
+Scores from one run against `openai / gpt-5.2`; the model is not deterministic,
+so expect a few points either way. Delete the three nodes if you do not want
+them — nothing else references them.
 
 ## Where to look afterwards
 

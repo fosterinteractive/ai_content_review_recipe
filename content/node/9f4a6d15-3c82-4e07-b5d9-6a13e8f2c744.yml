@@ -1,0 +1,37 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 9f4a6d15-3c82-4e07-b5d9-6a13e8f2c744
+  bundle: page
+  default_langcode: en
+default:
+  revision_uid:
+    -
+      target_id: 1
+  status:
+    -
+      value: true
+  uid:
+    -
+      target_id: 1
+  title:
+    -
+      value: 'Reset Your Password in 3 Steps'
+  promote:
+    -
+      value: false
+  sticky:
+    -
+      value: false
+  revision_translation_affected:
+    -
+      value: true
+  path:
+    -
+      langcode: en
+      alias: null
+  body:
+    -
+      value: '<h2>Before you start</h2><p>You will need access to the email address on your account. The whole thing takes about a minute.</p><h2>Step 1: Ask for a reset link</h2><p>On the sign-in page, choose <strong>Forgot password</strong>. Type your email address and select <strong>Send link</strong>. We will email you right away.</p><h2>Step 2: Pick a new password</h2><p>Open the email and select the link. Choose a new password with at least 12 characters. Select <strong>Save</strong>, and your new password works straight away.</p><h2>If the email does not arrive</h2><p>Check your spam folder first. Still nothing? Write to us at support@example.com and we will sort it out with you. If a screen reader is easier for you, the reset form works with one, and we can also reset the password for you over the phone.</p>'
+      format: basic_html
+      summary: ''
